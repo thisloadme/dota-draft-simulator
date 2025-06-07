@@ -15,4 +15,9 @@ export default defineNuxtConfig({
     '@pinia/nuxt'
   ],
   css: ['~/assets/css/main.css'],
+  runtimeConfig: {
+    public: {
+      geminiApiKey: process.env.GEMINI_API_KEY
+    }
+  },
 })

@@ -8,7 +8,7 @@
             </div>
         </div>
 
-        <h1 class="text-4xl font-bold mb-8 text-center">Draft Simulasi</h1>
+        <h1 class="text-4xl font-bold mb-8 text-center">Captain Mode Draft Simulation</h1>
         
         <!-- Draft Timeline -->
         <div class="mb-8">
@@ -56,7 +56,22 @@
         <div class="grid grid-cols-2 gap-8 mb-8">
             <!-- Radiant Side -->
             <div class="space-y-4">
-                <h2 class="text-2xl font-bold text-[#FFD700]">Radiant</h2>
+                <h2 class="text-2xl font-bold text-[#FFD700] flex items-center gap-2">
+                    Radiant
+                    <span v-if="draftStore.selectedTeam === 'radiant'" class="text-sm font-normal text-gray-400">(You)</span>
+                    <svg v-if="draftStore.selectedTeam === 'dire' && draftStore.isBotThinking && draftStore.currentPhase !== null && draftOrder[draftStore.currentPhase].team === 'radiant'" 
+                         xmlns="http://www.w3.org/2000/svg" 
+                         class="h-6 w-6 animate-pulse" 
+                         viewBox="0 0 24 24" 
+                         fill="none" 
+                         stroke="currentColor" 
+                         stroke-width="2" 
+                         stroke-linecap="round" 
+                         stroke-linejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                </h2>
                 <!-- Picked Heroes -->
                 <div>
                     <h3 class="text-lg font-semibold mb-2">Picked Heroes</h3>
@@ -95,7 +110,22 @@
 
             <!-- Dire Side -->
             <div class="space-y-4">
-                <h2 class="text-2xl font-bold text-[#FF0000]">Dire</h2>
+                <h2 class="text-2xl font-bold text-[#FF0000] flex items-center gap-2">
+                    Dire
+                    <span v-if="draftStore.selectedTeam === 'dire'" class="text-sm font-normal text-gray-400">(You)</span>
+                    <svg v-if="draftStore.selectedTeam === 'radiant' && draftStore.isBotThinking && draftStore.currentPhase !== null && draftOrder[draftStore.currentPhase].team === 'dire'" 
+                         xmlns="http://www.w3.org/2000/svg" 
+                         class="h-6 w-6 animate-pulse" 
+                         viewBox="0 0 24 24" 
+                         fill="none" 
+                         stroke="currentColor" 
+                         stroke-width="2" 
+                         stroke-linecap="round" 
+                         stroke-linejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                </h2>
                 <!-- Picked Heroes -->
                 <div>
                     <h3 class="text-lg font-semibold mb-2">Picked Heroes</h3>
@@ -147,10 +177,22 @@
                     class="bg-[#3b2a26] hover:bg-[#4a3a36] px-6 py-3 rounded-lg transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed">
                 Pick Hero
             </button>
+            <button v-if="shouldShowAnalysisButton"
+                    @click="handleAnalysis"
+                    :disabled="draftStore.isAnalyzing"
+                    class="bg-[#3b2a26] hover:bg-[#4a3a36] px-6 py-3 rounded-lg transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed">
+                {{ draftStore.isAnalyzing ? 'Analyzing...' : 'Get Analysis' }}
+            </button>
+        </div>
+
+        <!-- Analysis Results -->
+        <div v-if="draftStore.analysis" class="mb-8 p-6 bg-[#3b2a26] rounded-lg">
+            <h2 class="text-2xl font-bold mb-4">Draft Analysis</h2>
+            <div class="whitespace-pre-line" v-html="draftStore.analysis?.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')"></div>
         </div>
 
         <!-- Hero Grid -->
-        <div class="grid grid-cols-4 gap-8">
+        <div v-if="!draftStore.analysis" class="grid grid-cols-4 gap-8">
             <!-- Strength Heroes -->
             <div class="space-y-4">
                 <h3 class="text-xl font-bold text-[#FF0000]">Strength</h3>
@@ -267,7 +309,8 @@
 </template>
 
 <script setup>
-import { useDraftStore } from '~/stores/draft'
+import { useDraftStore, draftOrder, heroes } from '~/stores/draft'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 
 const draftStore = useDraftStore()
 const countdown = ref(5)
@@ -349,100 +392,46 @@ onMounted(() => {
 
 // Computed properties untuk kontrol button
 const shouldShowBanButton = computed(() => {
-  if (draftStore.currentPhase === null) return false
-  const currentDraftPhase = draftOrder[draftStore.currentPhase]
-  return currentDraftPhase.team === draftStore.selectedTeam && currentDraftPhase.phase === 'ban'
+    if (draftStore.currentPhase === null) return false
+    const currentDraftPhase = draftOrder[draftStore.currentPhase]
+    return currentDraftPhase.team === draftStore.selectedTeam && currentDraftPhase.phase === 'ban'
 })
 
 const shouldShowPickButton = computed(() => {
-  if (draftStore.currentPhase === null) return false
-  const currentDraftPhase = draftOrder[draftStore.currentPhase]
-  return currentDraftPhase.team === draftStore.selectedTeam && currentDraftPhase.phase === 'pick'
+    if (draftStore.currentPhase === null) return false
+    const currentDraftPhase = draftOrder[draftStore.currentPhase]
+    return currentDraftPhase.team === draftStore.selectedTeam && currentDraftPhase.phase === 'pick'
 })
+
+const shouldShowAnalysisButton = computed(() => {
+    return draftStore.currentPhase === draftOrder.length - 1
+})
+
+const handleAnalysis = async () => {
+    await draftStore.analyzeDraft()
+}
 
 const heroImage = (hero) => {
     return `/images/${hero.replace(/\s+/g, '_').replace(/[']/g, '')}_icon.webp`
 }
 
-// Data hero Dota 2
-const heroes = {
-    strength: [
-        'Alchemist', 'Axe', 'Bristleback', 'Centaur Warrunner', 'Chaos Knight', 'Clockwerk',
-        'Dawnbreaker', 'Doom', 'Dragon Knight', 'Earth Spirit', 'Earthshaker',
-        'Elder Titan', 'Huskar', 'Kunkka', 'Legion Commander', 'Lifestealer',
-        'Lycan', 'Mars', 'Night Stalker', 'Ogre Magi', 'Omniknight',
-        'Phoenix', 'Primal Beast', 'Pudge', 'Slardar', 'Spirit Breaker',
-        'Sven', 'Tidehunter', 'Timbersaw', 'Tiny', 'Treant Protector',
-        'Tusk', 'Underlord', 'Undying', 'Wraith King'
-    ],
-    agility: [
-        'Anti-Mage', 'Bloodseeker', 'Bounty Hunter', 'Broodmother',
-        'Clinkz', 'Drow Ranger', 'Ember Spirit', 'Faceless Void', 'Gyrocopter',
-        'Hoodwink', 'Juggernaut', 'Kez', 'Lone Druid', 'Luna',
-        'Medusa', 'Meepo', 'Mirana', 'Monkey King', 'Morphling',
-        'Naga Siren', 'Phantom Assassin', 'Phantom Lancer', 'Razor', 'Riki',
-        'Shadow Fiend', 'Slark', 'Sniper', 'Templar Assassin', 'Terrorblade',
-        'Troll Warlord', 'Ursa', 'Vengeful Spirit', 'Viper', 'Weaver'
-    ],
-    intelligence: [
-        'Ancient Apparition', 'Chen', 'Crystal Maiden', 'Dark Seer', 'Dark Willow', 'Disruptor',
-        'Enchantress', 'Grimstroke', 'Invoker', 'Jakiro', 'Keeper of the Light',
-        'Leshrac', 'Lich', 'Lina', 'Lion', 'Muerta',
-        'Necrophos', 'Oracle', 'Outworld Destroyer', 'Puck', 'Pugna',
-        'Queen of Pain', 'Ringmaster', 'Rubick', 'Shadow Demon', 'Shadow Shaman',
-        'Silencer', 'Skywrath Mage', 'Storm Spirit', 'Tinker', 'Warlock',
-        'Winter Wyvern', 'Witch Doctor', 'Zeus'
-    ],
-    universal: [
-        'Arc Warden', 'Bane', 'Batrider', 'Beastmaster', 'Brewmaster',
-        'Dazzle', 'Death Prophet', 'Enigma', 'Io', 'Magnus',
-        'Marci', 'Nature\'s Prophet', 'Nyx Assassin', 'Pangolier', 'Sand King',
-        'Snapfire', 'Spectre', 'Techies', 'Venomancer', 'Visage',
-        'Void Spirit', 'Windranger'
-    ]
-}
-
-// Data untuk urutan draft
-const draftOrder = [
-    { phase: 'ban', team: 'radiant' },
-    { phase: 'ban', team: 'dire' },
-    { phase: 'ban', team: 'dire' },
-    { phase: 'ban', team: 'radiant' },
-    { phase: 'ban', team: 'dire' },
-    { phase: 'ban', team: 'dire' },
-    { phase: 'ban', team: 'radiant' },
-    { phase: 'pick', team: 'radiant' },
-    { phase: 'pick', team: 'dire' },
-    { phase: 'ban', team: 'radiant' },
-    { phase: 'ban', team: 'radiant' },
-    { phase: 'ban', team: 'dire' },
-    { phase: 'pick', team: 'dire' },
-    { phase: 'pick', team: 'radiant' },
-    { phase: 'pick', team: 'radiant' },
-    { phase: 'pick', team: 'dire' },
-    { phase: 'pick', team: 'dire' },
-    { phase: 'pick', team: 'radiant' },
-    { phase: 'ban', team: 'radiant' },
-    { phase: 'ban', team: 'dire' },
-    { phase: 'ban', team: 'dire' },
-    { phase: 'ban', team: 'radiant' },
-    { phase: 'pick', team: 'radiant' },
-    { phase: 'pick', team: 'dire' }
-]
-
 const handleBanHero = () => {
     if (draftStore.selectedHero) {
         draftStore.banHero(draftStore.selectedHero)
-        // Move to next phase
-        draftStore.setCurrentPhase(draftStore.currentPhase + 1)
+        // Move to next phase only if not in the last phase
+        if (draftStore.currentPhase !== null && draftStore.currentPhase < draftOrder.length - 1) {
+            draftStore.setCurrentPhase(draftStore.currentPhase + 1)
+        }
     }
 }
 
 const handlePickHero = () => {
     if (draftStore.selectedHero) {
         draftStore.pickHero(draftStore.selectedHero)
-        // Move to next phase
-        draftStore.setCurrentPhase(draftStore.currentPhase + 1)
+        // Move to next phase only if not in the last phase
+        if (draftStore.currentPhase !== null && draftStore.currentPhase < draftOrder.length - 1) {
+            draftStore.setCurrentPhase(draftStore.currentPhase + 1)
+        }
     }
 }
 </script>

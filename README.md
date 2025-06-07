@@ -1,112 +1,74 @@
-# Dota Draft Simulator
+# Dota 2 Draft Simulator
 
-A web application that simulates the Dota 2 drafting phase, helping players practice and improve their drafting skills. This project is built using Nuxt.js and provides an interactive interface for simulating hero picks and bans in a Dota 2 match.
+Aplikasi simulasi draft Dota 2 yang memungkinkan pengguna untuk berlatih strategi drafting melawan bot yang menggunakan AI.
 
-## Features
+## Fitur
 
-- Interactive hero selection interface
-- Real-time draft simulation
-- Hero filtering and search functionality
-- Support for both Captains Mode and All Pick formats
-- Responsive design for desktop and mobile devices
+- **Simulasi Draft Lengkap**: Mengikuti format Captain Mode dengan urutan ban dan pick yang sesuai
+- **Pemilihan Tim**: Pilih antara tim Radiant atau Dire
+- **Bot AI**: Lawan bot yang menggunakan AI untuk membuat keputusan ban dan pick
+- **Visualisasi Draft**: Timeline visual yang menunjukkan progress draft
+- **Pencarian Hero**: Cari hero dengan mengetik nama hero
+- **Analisis Draft**: Dapatkan analisis mendalam tentang draft setelah selesai, termasuk:
+  - Probabilitas kemenangan untuk masing-masing tim
+  - Kekuatan dan kelemahan draft
+  - Faktor-faktor yang mempengaruhi hasil pertandingan
+  - Saran strategi untuk kedua tim
 
-## Tech Stack
+## Teknologi
 
-- Nuxt.js 3
-- Vue.js 3
-- TypeScript
+- Nuxt 3
+- Vue 3
+- Pinia
 - Tailwind CSS
+- Google Gemini AI
 
-## Prerequisites
+## Cara Penggunaan
 
-Before you begin, ensure you have the following installed:
-- Node.js (v20 or higher)
-- npm, yarn, pnpm, or bun package manager
+1. Pilih tim (Radiant atau Dire)
+2. Tunggu countdown selesai
+3. Saat giliran Anda:
+   - Klik hero untuk memilih
+   - Tekan tombol "Ban Hero" atau "Pick Hero"
+4. Saat giliran bot:
+   - Bot akan "berpikir" selama 1-3 detik
+   - Bot akan memilih hero secara otomatis
+5. Setelah draft selesai:
+   - Klik tombol "Get Analysis"
+   - Tunggu hasil analisis dari AI
+   - Baca analisis mendalam tentang draft
 
-## Setup
+## Kontrol
 
-1. Clone the repository:
+- **Mouse**: Klik hero untuk memilih
+- **Keyboard**: Ketik nama hero untuk mencari
+- **Tombol**: 
+  - "Ban Hero": Untuk membanned hero yang dipilih
+  - "Pick Hero": Untuk memilih hero yang dipilih
+  - "Get Analysis": Untuk mendapatkan analisis draft (muncul setelah draft selesai)
+
+## Instalasi
+
+1. Clone repository
 ```bash
-git clone https://github.com/thisloadme/dota-draft-simulator.git
-cd dota-draft-simulator
+git clone [repository-url]
 ```
 
-2. Install dependencies:
+2. Install dependencies
 ```bash
-# Using npm
 npm install
-
-# Using pnpm
-pnpm install
-
-# Using yarn
-yarn install
-
-# Using bun
-bun install
 ```
 
-## Development
+3. Buat file `.env` dan tambahkan API key Gemini
+```
+NUXT_PUBLIC_GEMINI_API_KEY=your_api_key_here
+```
 
-Start the development server on `http://localhost:3000`:
-
+4. Jalankan aplikasi
 ```bash
-# Using npm
 npm run dev
-
-# Using pnpm
-pnpm dev
-
-# Using yarn
-yarn dev
-
-# Using bun
-bun run dev
 ```
 
-## Building for Production
+## Lisensi
 
-Build the application for production:
-
-```bash
-# Using npm
-npm run build
-
-# Using pnpm
-pnpm build
-
-# Using yarn
-yarn build
-
-# Using bun
-bun run build
-```
-
-Preview the production build locally:
-
-```bash
-# Using npm
-npm run preview
-
-# Using pnpm
-pnpm preview
-
-# Using yarn
-yarn preview
-
-# Using bun
-bun run preview
-```
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## License
-
-This project is licensed under the GNU GENERAL PUBLIC LICENSE V3 - see the LICENSE file for details.
-
-## Acknowledgments
-
-- Dota 2 and all related assets are property of Valve Corporation
-- This project is not affiliated with Valve Corporation
+[GNU GPL v3](https://choosealicense.com/licenses/gpl-3.0/)
