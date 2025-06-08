@@ -1,5 +1,17 @@
 <template>
     <div class="w-full max-w-7xl mx-auto p-4">
+        <!-- Control Buttons -->
+        <div class="absolute top-4 right-4 flex gap-2">
+            <button @click="handleResetDraft" 
+                    class="bg-[#3b2a26] hover:bg-[#4a3a36] px-4 py-2 rounded-lg transition-all hover:scale-105">
+                Ulang Simulasi
+            </button>
+            <button @click="handleRestartDraft" 
+                    class="bg-[#3b2a26] hover:bg-[#4a3a36] px-4 py-2 rounded-lg transition-all hover:scale-105">
+                Restart Simulasi
+            </button>
+        </div>
+
         <!-- Search Overlay -->
         <div v-if="searchText" 
              class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50">
@@ -49,6 +61,11 @@
                 </span>
                 <span v-if="countdown > 0" class="ml-2 text-red-500 font-bold animate-pulse">
                     {{ countdown }}
+                </span>
+                <span v-if="draftStore.useTimeLimit && draftStore.currentPhase !== null && draftOrder[draftStore.currentPhase].team === draftStore.selectedTeam" 
+                      class="ml-2 text-red-500 font-bold"
+                      :class="{ 'animate-pulse': draftStore.isTimeUp }">
+                    {{ draftStore.remainingTime }}s
                 </span>
             </div>
         </div>
@@ -168,14 +185,18 @@
             <button v-if="shouldShowBanButton" 
                     @click="handleBanHero"
                     :disabled="!draftStore.selectedHero"
-                    class="bg-[#3b2a26] hover:bg-[#4a3a36] px-6 py-3 rounded-lg transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed">
-                Ban Hero
+                    class="bg-[#3b2a26] hover:bg-[#4a3a36] px-6 py-3 rounded-lg transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed relative"
+                    :class="{ 'animate-pulse': draftStore.isTimeUp }">
+                <span>Ban Hero</span>
+                <div v-if="draftStore.isTimeUp" class="absolute inset-0 bg-red-500 bg-opacity-20 rounded-lg"></div>
             </button>
             <button v-if="shouldShowPickButton"
                     @click="handlePickHero"
                     :disabled="!draftStore.selectedHero"
-                    class="bg-[#3b2a26] hover:bg-[#4a3a36] px-6 py-3 rounded-lg transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed">
-                Pick Hero
+                    class="bg-[#3b2a26] hover:bg-[#4a3a36] px-6 py-3 rounded-lg transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed relative"
+                    :class="{ 'animate-pulse': draftStore.isTimeUp }">
+                <span>Pick Hero</span>
+                <div v-if="draftStore.isTimeUp" class="absolute inset-0 bg-red-500 bg-opacity-20 rounded-lg"></div>
             </button>
             <button v-if="shouldShowAnalysisButton"
                     @click="handleAnalysis"
@@ -311,11 +332,14 @@
 <script setup>
 import { useDraftStore, draftOrder, heroes } from '~/stores/draft'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 
+const router = useRouter()
 const draftStore = useDraftStore()
 const countdown = ref(5)
 const searchText = ref('')
 const searchTimeout = ref(null)
+const timeInterval = ref(null)
 
 // Handle keyboard input for hero search
 const handleKeyPress = (event) => {
@@ -377,6 +401,9 @@ onUnmounted(() => {
     if (searchTimeout.value) {
         clearTimeout(searchTimeout.value)
     }
+    if (timeInterval.value) {
+        clearInterval(timeInterval.value)
+    }
 })
 
 // Start countdown when component is mounted
@@ -388,6 +415,16 @@ onMounted(() => {
             draftStore.setCurrentPhase(0)
         }
     }, 1000)
+
+    // Start time limit countdown if enabled
+    if (draftStore.useTimeLimit) {
+        timeInterval.value = setInterval(() => {
+            if (draftStore.currentPhase !== null && 
+                draftOrder[draftStore.currentPhase].team === draftStore.selectedTeam) {
+                draftStore.decrementTime()
+            }
+        }, 1000)
+    }
 })
 
 // Computed properties untuk kontrol button
@@ -409,6 +446,23 @@ const shouldShowAnalysisButton = computed(() => {
 
 const handleAnalysis = async () => {
     await draftStore.analyzeDraft()
+}
+
+const handleResetDraft = () => {
+    draftStore.resetDraft()
+    countdown.value = 5
+    const timer = setInterval(() => {
+        countdown.value--
+        if (countdown.value <= 0) {
+            clearInterval(timer)
+            draftStore.setCurrentPhase(0)
+        }
+    }, 1000)
+}
+
+const handleRestartDraft = () => {
+    draftStore.restartDraft()
+    router.push('/')
 }
 
 const heroImage = (hero) => {
@@ -435,4 +489,19 @@ const handlePickHero = () => {
     }
 }
 </script>
+
+<style scoped>
+.animate-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+</style>
 

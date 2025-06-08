@@ -16,8 +16,6 @@ export default defineNuxtConfig({
   ],
   css: ['~/assets/css/main.css'],
   runtimeConfig: {
-    public: {
-      geminiApiKey: process.env.GEMINI_API_KEY
-    }
+    geminiApiKey: process.env.GEMINI_API_KEY
   },
 })

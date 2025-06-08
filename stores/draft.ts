@@ -82,7 +82,11 @@ export const useDraftStore = defineStore('draft', {
         },
         isBotThinking: false,
         analysis: null as string | null,
-        isAnalyzing: false
+        isAnalyzing: false,
+        useTimeLimit: false,
+        timeLimit: 30,
+        remainingTime: 0,
+        isTimeUp: false
     }),
 
     actions: {
@@ -90,6 +94,11 @@ export const useDraftStore = defineStore('draft', {
             this.currentPhase = phase
             if (phase !== null) {
                 this.checkBotTurn()
+                // Reset time when phase changes
+                if (this.useTimeLimit) {
+                    this.remainingTime = this.timeLimit
+                    this.isTimeUp = false
+                }
             }
         },
 
@@ -97,8 +106,54 @@ export const useDraftStore = defineStore('draft', {
             this.selectedTeam = team
         },
 
+        setTimeLimit(useTimeLimit: boolean, timeLimit: number = 30) {
+            this.useTimeLimit = useTimeLimit
+            this.timeLimit = timeLimit
+            this.remainingTime = timeLimit
+            this.isTimeUp = false
+        },
+
+        decrementTime() {
+            if (this.useTimeLimit && this.remainingTime > 0) {
+                this.remainingTime--
+                if (this.remainingTime === 0) {
+                    this.isTimeUp = true
+                }
+            }
+        },
+
         selectHero(hero: string) {
             this.selectedHero = hero
+        },
+
+        banHero(hero: string) {
+            if (this.currentPhase === null || this.selectedTeam === null) return
+
+            const currentDraftPhase = draftOrder[this.currentPhase]
+            const team = currentDraftPhase.team as 'radiant' | 'dire'
+
+            if (!this.isHeroBanned(hero) && !this.isHeroPicked(hero)) {
+                this.bannedHeroes[team].push(hero)
+            }
+        },
+
+        pickHero(hero: string) {
+            if (this.currentPhase === null || this.selectedTeam === null) return
+
+            const currentDraftPhase = draftOrder[this.currentPhase]
+            const team = currentDraftPhase.team as 'radiant' | 'dire'
+
+            if (!this.isHeroBanned(hero) && !this.isHeroPicked(hero)) {
+                this.pickedHeroes[team].push(hero)
+            }
+        },
+
+        isHeroBanned(hero: string): boolean {
+            return this.bannedHeroes.radiant.includes(hero) || this.bannedHeroes.dire.includes(hero)
+        },
+
+        isHeroPicked(hero: string): boolean {
+            return this.pickedHeroes.radiant.includes(hero) || this.pickedHeroes.dire.includes(hero)
         },
 
         async checkBotTurn() {
@@ -143,30 +198,6 @@ export const useDraftStore = defineStore('draft', {
             }
         },
 
-        banHero(hero: string) {
-            if (this.currentPhase === null) return
-            const currentDraftPhase = draftOrder[this.currentPhase]
-            this.bannedHeroes[currentDraftPhase.team as 'radiant' | 'dire'].push(hero)
-            this.selectedHero = null
-        },
-
-        pickHero(hero: string) {
-            if (this.currentPhase === null) return
-            const currentDraftPhase = draftOrder[this.currentPhase]
-            this.pickedHeroes[currentDraftPhase.team as 'radiant' | 'dire'].push(hero)
-            this.selectedHero = null
-        },
-
-        isHeroBanned(hero: string): boolean {
-            return this.bannedHeroes.radiant.includes(hero) || 
-                   this.bannedHeroes.dire.includes(hero)
-        },
-
-        isHeroPicked(hero: string): boolean {
-            return this.pickedHeroes.radiant.includes(hero) || 
-                   this.pickedHeroes.dire.includes(hero)
-        },
-
         async analyzeDraft() {
             if (this.currentPhase !== draftOrder.length - 1) return
 
@@ -180,6 +211,43 @@ export const useDraftStore = defineStore('draft', {
             } finally {
                 this.isAnalyzing = false
             }
+        },
+
+        resetDraft() {
+            this.currentPhase = 0
+            this.selectedHero = null
+            this.pickedHeroes = {
+                radiant: [],
+                dire: []
+            }
+            this.bannedHeroes = {
+                radiant: [],
+                dire: []
+            }
+            this.isBotThinking = false
+            this.analysis = null
+            this.isAnalyzing = false
+            this.remainingTime = this.timeLimit
+            this.isTimeUp = false
+        },
+
+        restartDraft() {
+            this.currentPhase = null
+            this.selectedTeam = null
+            this.selectedHero = null
+            this.pickedHeroes = {
+                radiant: [],
+                dire: []
+            }
+            this.bannedHeroes = {
+                radiant: [],
+                dire: []
+            }
+            this.isBotThinking = false
+            this.analysis = null
+            this.isAnalyzing = false
+            this.remainingTime = this.timeLimit
+            this.isTimeUp = false
         }
     }
 }) 
