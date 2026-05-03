@@ -64,7 +64,7 @@ export const useGeminiService = () => {
             ...allHeroes.universal
         ];
 
-        return allHeroesList.filter(hero => 
+        return allHeroesList.filter(hero =>
             !allPickedHeroes.includes(hero) && !allBannedHeroes.includes(hero)
         );
     };
@@ -83,4 +83,4 @@ export const useGeminiService = () => {
         getBotDecision,
         analyzeDraft
     };
-}; 
+};

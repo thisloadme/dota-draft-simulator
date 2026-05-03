@@ -1,9 +1,55 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+const MAX_RETRIES = 3;
+const RETRY_DELAY_MS = 500;
+
+async function fetchWithRetry(
+    url: string,
+    options: RequestInit,
+    retries = MAX_RETRIES
+): Promise<any> {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+          const response = await fetch(url, options);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            if (attempt === retries) throw error;
+            await new Promise((r) => setTimeout(r, RETRY_DELAY_MS * attempt));
+        }
+    }
+}
+
+async function callMinimax(prompt: string, apiKey: string, baseUrl: string, model: string): Promise<string> {
+    const result = await fetchWithRetry(baseUrl, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            model: model,
+            messages: [{ role: 'user', content: prompt }]
+        })
+    });
+
+    const textContent = result.content?.find((c: any) => c.type === 'text');
+    if (!textContent?.text) {
+        throw new Error('Invalid response format from MiniMax');
+    }
+    return textContent.text;
+}
 
 export default defineEventHandler(async (event) => {
     const config = useRuntimeConfig();
-    const genAI = new GoogleGenerativeAI(config.geminiApiKey || '');
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    const apiKey = config.minimaxApiKey;
+    const baseUrl = config.minimaxBaseUrl;
+    const model = config.minimaxModel;
+
+    if (!apiKey || !baseUrl || !model) {
+        throw createError({ statusCode: 500, message: 'MINIMAX config not complete' });
+    }
 
     const body = await readBody(event);
     const { type, data } = body;
@@ -16,7 +62,6 @@ export default defineEventHandler(async (event) => {
             const botTeam = currentDraftPhase.team;
             const enemyTeam = botTeam === 'radiant' ? 'dire' : 'radiant';
 
-            // Prepare the context for the AI
             const context = {
                 phase: isBanPhase ? 'ban' : 'pick',
                 botTeam,
@@ -32,19 +77,13 @@ export default defineEventHandler(async (event) => {
                 availableHeroes: getAvailableHeroes(pickedHeroes, bannedHeroes, allHeroes)
             };
 
-            // Create the prompt for the AI
             const prompt = createPrompt(context);
-
-            // Get response from Gemini
-            const result = await model.generateContent(prompt);
-            const response = await result.response;
-            const text = response.text();
-
-            // Parse the response to get the hero name
+            const text = await callMinimax(prompt, apiKey, baseUrl, model);
             return parseHeroName(text);
+
         } else if (type === 'analyzeDraft') {
             const { pickedHeroes, bannedHeroes } = data;
-            const prompt = `Analyze this Dota 2 draft and provide a detailed analysis:
+            const prompt = `Analyze this Dota 2 draft and provide a detailed analysis using 7.40 patches:
 
 Radiant Team Picks: ${pickedHeroes.radiant.join(', ')}
 Radiant Team Bans: ${bannedHeroes.radiant.join(', ')}
@@ -59,19 +98,18 @@ Please provide:
 4. Important factors that could influence the game outcome
 5. Suggested strategies for each team
 
-Format the response in a clear, structured way.`
+Format the response in a clear, structured way.`;
 
-            const result = await model.generateContent(prompt);
-            const response = await result.response;
-            return response.text();
+            return await callMinimax(prompt, apiKey, baseUrl, model);
         }
 
         throw new Error('Invalid request type');
     } catch (error) {
-        console.error('Error in Gemini API:', error);
+        console.error('Error in MiniMax API:', error);
+        console.error('Error details:', error.message, error.stack);
         throw createError({
             statusCode: 500,
-            message: 'Error processing Gemini request'
+            message: error.message || 'Error processing AI request'
         });
     }
 });
@@ -86,6 +124,7 @@ Current game state:
 - Bot team bans: ${context.currentBans.bot.join(', ') || 'none'}
 - Enemy team bans: ${context.currentBans.enemy.join(', ') || 'none'}
 - Available heroes: ${context.availableHeroes.join(', ')}
+- Patches: 7.40
 
 Consider the following when making your decision:
 - Current meta and overpowered heroes that should be banned or picked
@@ -112,13 +151,12 @@ const getAvailableHeroes = (
         ...allHeroes.universal
     ];
 
-    return allHeroesList.filter(hero => 
+    return allHeroesList.filter(hero =>
         !allPickedHeroes.includes(hero) && !allBannedHeroes.includes(hero)
     );
 };
 
 const parseHeroName = (text: string): string => {
-    // Clean up the response to get just the hero name
     const cleanText = text.trim().replace(/["']/g, '');
     return cleanText;
-}; 
+};

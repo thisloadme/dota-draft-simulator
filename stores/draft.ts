@@ -4,12 +4,12 @@ import { useGeminiService } from '~/services/gemini'
 // Data untuk urutan draft
 export const draftOrder = [
     { phase: 'ban', team: 'radiant' },
-    { phase: 'ban', team: 'dire' },
-    { phase: 'ban', team: 'dire' },
     { phase: 'ban', team: 'radiant' },
     { phase: 'ban', team: 'dire' },
     { phase: 'ban', team: 'dire' },
     { phase: 'ban', team: 'radiant' },
+    { phase: 'ban', team: 'dire' },
+    { phase: 'ban', team: 'dire' },
     { phase: 'pick', team: 'radiant' },
     { phase: 'pick', team: 'dire' },
     { phase: 'ban', team: 'radiant' },
@@ -23,8 +23,8 @@ export const draftOrder = [
     { phase: 'pick', team: 'radiant' },
     { phase: 'ban', team: 'radiant' },
     { phase: 'ban', team: 'dire' },
-    { phase: 'ban', team: 'dire' },
     { phase: 'ban', team: 'radiant' },
+    { phase: 'ban', team: 'dire' },
     { phase: 'pick', team: 'radiant' },
     { phase: 'pick', team: 'dire' }
 ]
@@ -34,7 +34,7 @@ export const heroes = {
     strength: [
         'Alchemist', 'Axe', 'Bristleback', 'Centaur Warrunner', 'Chaos Knight', 'Clockwerk',
         'Dawnbreaker', 'Doom', 'Dragon Knight', 'Earth Spirit', 'Earthshaker',
-        'Elder Titan', 'Huskar', 'Kunkka', 'Legion Commander', 'Lifestealer',
+        'Elder Titan', 'Huskar', 'Kunkka', 'Largo', 'Legion Commander', 'Lifestealer',
         'Lycan', 'Mars', 'Night Stalker', 'Ogre Magi', 'Omniknight',
         'Phoenix', 'Primal Beast', 'Pudge', 'Slardar', 'Spirit Breaker',
         'Sven', 'Tidehunter', 'Timbersaw', 'Tiny', 'Treant Protector',
@@ -46,7 +46,7 @@ export const heroes = {
         'Hoodwink', 'Juggernaut', 'Kez', 'Lone Druid', 'Luna',
         'Medusa', 'Meepo', 'Mirana', 'Monkey King', 'Morphling',
         'Naga Siren', 'Phantom Assassin', 'Phantom Lancer', 'Razor', 'Riki',
-        'Shadow Fiend', 'Slark', 'Sniper', 'Templar Assassin', 'Terrorblade',
+        'Shadow Fiend', 'Slark', 'Sniper', 'Spectre', 'Templar Assassin', 'Terrorblade',
         'Troll Warlord', 'Ursa', 'Vengeful Spirit', 'Viper', 'Weaver'
     ],
     intelligence: [
@@ -59,10 +59,10 @@ export const heroes = {
         'Winter Wyvern', 'Witch Doctor', 'Zeus'
     ],
     universal: [
-        'Arc Warden', 'Bane', 'Batrider', 'Beastmaster', 'Brewmaster',
+        'Abaddon', 'Arc Warden', 'Bane', 'Batrider', 'Beastmaster', 'Brewmaster',
         'Dazzle', 'Death Prophet', 'Enigma', 'Io', 'Magnus',
         'Marci', 'Nature\'s Prophet', 'Nyx Assassin', 'Pangolier', 'Sand King',
-        'Snapfire', 'Spectre', 'Techies', 'Venomancer', 'Visage',
+        'Snapfire', 'Techies', 'Venomancer', 'Visage',
         'Void Spirit', 'Windranger'
     ]
 }
@@ -132,6 +132,9 @@ export const useDraftStore = defineStore('draft', {
             const currentDraftPhase = draftOrder[this.currentPhase]
             const team = currentDraftPhase.team as 'radiant' | 'dire'
 
+            // Limit bans to 7 per team
+            if (this.bannedHeroes[team].length >= 7) return
+
             if (!this.isHeroBanned(hero) && !this.isHeroPicked(hero)) {
                 this.bannedHeroes[team].push(hero)
             }
@@ -142,6 +145,9 @@ export const useDraftStore = defineStore('draft', {
 
             const currentDraftPhase = draftOrder[this.currentPhase]
             const team = currentDraftPhase.team as 'radiant' | 'dire'
+
+            // Limit picks to 5 per team
+            if (this.pickedHeroes[team].length >= 5) return
 
             if (!this.isHeroBanned(hero) && !this.isHeroPicked(hero)) {
                 this.pickedHeroes[team].push(hero)
@@ -195,6 +201,8 @@ export const useDraftStore = defineStore('draft', {
                     console.error('Error in bot decision:', error)
                     this.isBotThinking = false
                 }
+            } else {
+                this.isBotThinking = false
             }
         },
 
@@ -250,4 +258,4 @@ export const useDraftStore = defineStore('draft', {
             this.isTimeUp = false
         }
     }
-}) 
+})

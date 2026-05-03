@@ -16,6 +16,8 @@ export default defineNuxtConfig({
   ],
   css: ['~/assets/css/main.css'],
   runtimeConfig: {
-    geminiApiKey: process.env.GEMINI_API_KEY
+    minimaxApiKey: process.env.MINIMAX_API_KEY,
+    minimaxBaseUrl: process.env.MINIMAX_BASE_URL,
+    minimaxModel: process.env.MINIMAX_MODEL
   },
 })
